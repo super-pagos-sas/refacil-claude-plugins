@@ -1,0 +1,15 @@
+# CodeGraph local index (machine-specific)
+.codegraph/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Autopilot runtime marker
+refacil-sdd/.autopilot-active
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
