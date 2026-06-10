@@ -111,8 +111,12 @@ test('CA-02: plugin.json has required fields and must NOT contain a version fiel
     'description must be a non-empty string'
   );
   assert.ok(
-    typeof json.author === 'string' && json.author.length > 0,
-    'author must be a non-empty string'
+    json.author !== null &&
+      typeof json.author === 'object' &&
+      !Array.isArray(json.author) &&
+      typeof json.author.name === 'string' &&
+      json.author.name.length > 0,
+    'author must be an object with a non-empty name (per the plugin manifest schema validated by `claude plugin validate`)'
   );
   assert.ok(
     typeof json.homepage === 'string' && json.homepage.length > 0,
@@ -365,29 +369,19 @@ test('CR-04: manifest required-field assertions would fail on an object missing 
 // ---------------------------------------------------------------------------
 // CR-05  README must contain a pending/warning marker for Desktop/Cowork section
 // ---------------------------------------------------------------------------
-test('CR-05: README contains an explicit pending-verification or warning marker for the Desktop/Cowork flow section', () => {
+test('CR-05: README documents the confirmed Claude Cowork / Desktop installation flow', () => {
   const readme = repoRead('refacil-pay-cli/README.md');
 
-  // The section about Desktop/Cowork must exist.
+  // The section about Cowork/Desktop must exist.
   const hasDesktopSection = readme.includes('Desktop') || readme.includes('Cowork');
-  assert.ok(hasDesktopSection, 'README must have a section covering the Desktop/Cowork installation flow');
+  assert.ok(hasDesktopSection, 'README must have a section covering the Cowork/Desktop installation flow');
 
-  // The section must NOT present the Desktop flow as a confirmed fact —
-  // it must carry a PENDING or WARNING marker.
-  const hasPendingWarning =
-    readme.includes('PENDING') ||
-    readme.includes('pending') ||
-    readme.includes('WARNING') ||
-    readme.includes('warning') ||
-    readme.includes('not been validated') ||
-    readme.includes('has not been validated') ||
-    readme.includes('not explicitly documented') ||
-    readme.includes('not clearly described');
-
+  // The flow was verified against the official Anthropic docs, so the README must
+  // document the real install path (the Cowork "Add marketplace" UI action) rather
+  // than a pending/unverified placeholder.
   assert.ok(
-    hasPendingWarning,
-    'README must contain an explicit "PENDING", "WARNING", or equivalent unverified-status marker ' +
-    'for the Desktop/Cowork section — it must not assert the flow as confirmed'
+    readme.includes('Add marketplace'),
+    'README must document the Cowork "Add marketplace" step for the confirmed install flow'
   );
 });
 
@@ -484,15 +478,15 @@ test('CA-01 (additional): plugins[].name values in marketplace.json are unique',
 // ---------------------------------------------------------------------------
 // CR-05 (additional): pending/warning marker is co-located with Desktop/Cowork section
 // ---------------------------------------------------------------------------
-test('CR-05 (additional): pending/warning marker is inside the Desktop/Cowork section, not merely anywhere in README', () => {
+test('CR-05 (additional): the confirmed install steps are co-located inside the Cowork/Desktop section', () => {
   const readme = repoRead('refacil-pay-cli/README.md');
   const lines = readme.split(/\r?\n/);
 
-  // Locate the ## heading that mentions Desktop or Cowork.
+  // Locate the ## heading that mentions Cowork or Desktop.
   const desktopIdx = lines.findIndex((l) => /^##\s+.*(?:Desktop|Cowork)/i.test(l));
   assert.ok(
     desktopIdx !== -1,
-    'README must have a ## heading for the Desktop/Cowork section'
+    'README must have a ## heading for the Cowork/Desktop section'
   );
 
   // Find the next ## heading after it (end of section).
@@ -503,19 +497,15 @@ test('CR-05 (additional): pending/warning marker is inside the Desktop/Cowork se
 
   const sectionText = lines.slice(desktopIdx, sectionEnd).join('\n');
 
-  const hasPendingInSection =
-    sectionText.includes('PENDING') ||
-    sectionText.includes('pending') ||
-    sectionText.includes('WARNING') ||
-    sectionText.includes('warning') ||
-    sectionText.includes('not been validated') ||
-    sectionText.includes('has not been validated') ||
-    sectionText.includes('not explicitly documented') ||
-    sectionText.includes('not clearly described');
+  // The documented Cowork flow ("Add marketplace" / "Add from a repository") must live
+  // INSIDE this section, not elsewhere in the README.
+  const hasFlowInSection =
+    sectionText.includes('Add marketplace') ||
+    sectionText.includes('Add from a repository');
 
   assert.ok(
-    hasPendingInSection,
-    'The pending/warning marker must appear INSIDE the Desktop/Cowork section ' +
+    hasFlowInSection,
+    'The confirmed Cowork install steps must appear INSIDE the Cowork/Desktop section ' +
     '(between its ## heading and the next ## heading), not merely elsewhere in the README'
   );
 });

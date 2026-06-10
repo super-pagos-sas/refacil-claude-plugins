@@ -150,4 +150,8 @@ archivados, `specs/` como registro histórico). Ver la tabla de comandos `/refac
 
 ## Licencia
 
-Uso interno de Refácil (Super Pagos S.A.S.).
+[MIT](./LICENSE) © 2026 Super Pagos S.A.S.
+
+El código de empaquetado de este repositorio (manifiestos, README, tests) se publica bajo MIT.
+El binario `refacil-pay-cli` (instalado por separado vía npm) y el acceso a la API de Refácil Pay
+se rigen por sus propios términos de servicio.

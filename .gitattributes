@@ -1,0 +1,4 @@
+# Keep vendored skill files byte-identical to the npm-published source.
+# Force LF so Windows autocrlf never rewrites them — the contract test CA-04
+# compares these files byte-for-byte against the global npm install.
+refacil-pay-cli/skills/refacil-pay-cli/** text eol=lf
