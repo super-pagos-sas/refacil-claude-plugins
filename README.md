@@ -18,9 +18,9 @@ metodología **SDD-AI** (`refacil-sdd-ai`).
 
 | Plugin | Descripción | Prerequisito | Flujos | Docs |
 |--------|-------------|--------------|--------|------|
-| [`refacil-pay-cli`](./refacil-pay-cli/README.md) | Operador CLI de Refácil Pay desde Claude. | `npm install -g refacil-pay-cli` + `refacil-pay-cli login` | `cash-in-link`, `cash-in-method`, `cash-out` | [README](./refacil-pay-cli/README.md) |
+| [`refacil-pay`](./refacil-pay/README.md) | Operador CLI de Refácil Pay desde Claude. | `npm install -g refacil-pay-cli` + `refacil-pay-cli login` | `cash-in-link`, `cash-in-method`, `cash-out` | [README](./refacil-pay/README.md) |
 
-Tras instalar el plugin, la skill queda disponible como `/refacil-pay-cli:refacil-pay-cli`.
+Tras instalar el plugin, la skill queda disponible como `/refacil-pay:refacil-pay-cli`.
 
 ## Instalación
 
@@ -28,7 +28,7 @@ Tras instalar el plugin, la skill queda disponible como `/refacil-pay-cli:refaci
 
 ```
 /plugin marketplace add super-pagos-sas/refacil-claude-plugins
-/plugin install refacil-pay-cli@refacil-plugins
+/plugin install refacil-pay@refacil-plugins
 /reload-plugins
 ```
 
@@ -45,7 +45,7 @@ Tras instalar el plugin, la skill queda disponible como `/refacil-pay-cli:refaci
 > credenciales.
 
 Cada plugin trae sus prerequisitos e instrucciones detalladas en su propio README. Para
-`refacil-pay-cli`: instala antes el binario (`npm install -g refacil-pay-cli`) y autentícate
+`refacil-pay`: instala antes el binario (`npm install -g refacil-pay-cli`) y autentícate
 (`refacil-pay-cli login`) antes de ejecutar cualquier flujo.
 
 ## Estructura del repositorio
@@ -54,7 +54,7 @@ Cada plugin trae sus prerequisitos e instrucciones detalladas en su propio READM
 .
 ├── .claude-plugin/
 │   └── marketplace.json          # Manifiesto raíz del marketplace (name: refacil-plugins)
-├── refacil-pay-cli/              # Directorio del plugin
+├── refacil-pay/              # Directorio del plugin
 │   ├── .claude-plugin/
 │   │   └── plugin.json           # Manifiesto del plugin (omite "version" a propósito)
 │   ├── skills/refacil-pay-cli/   # Skill VENDORIZADA (copia exacta desde npm; no editar a mano)
@@ -98,14 +98,14 @@ independientes:
    que con el auto-update del marketplace habilitado los usuarios la reciben automáticamente.
 
 Detalle completo (incluido cómo activar el auto-update, que viene **desactivado por defecto** en
-marketplaces de terceros) en el [README del plugin](./refacil-pay-cli/README.md#updates-two-layer-model).
+marketplaces de terceros) en el [README del plugin](./refacil-pay/README.md#updates-two-layer-model).
 
 ## Mantenimiento: contrato de vendorización
 
 La fuente de verdad de la skill y del CLI es **`refacil-mcps`** (`generators/cli`). Este repositorio
 solo **consume y vendoriza** el árbol publicado en npm. Por lo tanto:
 
-- **Never:** editar a mano los archivos bajo `refacil-pay-cli/skills/refacil-pay-cli/`, agregar `version`
+- **Never:** editar a mano los archivos bajo `refacil-pay/skills/refacil-pay-cli/`, agregar `version`
   a `plugin.json` (lo prohíbe el test CA-02), o crear `SKILL.md` dentro de `.claude-plugin/` (CR-01).
 - **Always:** mantener las skills vendorizadas **byte-idénticas** al global npm (lo valida CA-04), e
   instalar el CLI siempre en su última versión (sin pinnear).

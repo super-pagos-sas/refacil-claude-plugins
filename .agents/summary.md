@@ -9,7 +9,7 @@ Marketplace de plugins de Claude Code de Refácil. Empaqueta el CLI `refacil-pay
 | Framework | Sistema de plugins de Claude Code (marketplace + plugins) |
 | Test runner oficial | `node --test` (test runner nativo `node:test` + `node:assert/strict`) |
 | Build / deps | Ninguno — no hay `package.json`. El CLI se instala con `npm install -g refacil-pay-cli` |
-| Empaquetado | Manifiestos JSON: `.claude-plugin/marketplace.json` + `refacil-pay-cli/.claude-plugin/plugin.json` |
+| Empaquetado | Manifiestos JSON: `.claude-plugin/marketplace.json` + `refacil-pay/.claude-plugin/plugin.json` |
 
 ## Scripts que importan
 - `node --test` — corre los tests de contrato en `test/`. No hay `npm test` (no hay manifest npm).

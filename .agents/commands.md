@@ -12,7 +12,7 @@ node --test --test-name-pattern "CA-04"        # filtrar por criterio
 ## Plugin / marketplace (lado usuario, en Claude Code)
 ```
 /plugin marketplace add <git-repo-url>         # registrar el marketplace (una vez por máquina)
-/plugin install refacil-pay-cli@refacil-plugins # instalar el plugin
+/plugin install refacil-pay@refacil-plugins # instalar el plugin
 ```
 
 ## CLI subyacente (prerequisito del plugin)
@@ -23,7 +23,7 @@ refacil-pay-cli login                          # autenticar sesión antes de los
 
 ## Vendorización (al actualizar el CLI)
 1. `npm install -g refacil-pay-cli` (última versión).
-2. Re-copiar los archivos de skill desde el global hacia `refacil-pay-cli/skills/` (deben quedar byte-idénticos).
+2. `node scripts/vendor-sync.mjs` — re-copia los archivos de skill desde el global hacia `refacil-pay/skills/` byte-idénticos (`--check` solo verifica y sale 1 si hay drift, útil en CI).
 3. `node --test` para validar CA-04 y el resto de contratos.
 
 ## SDD-AI (toolchain de la metodología)

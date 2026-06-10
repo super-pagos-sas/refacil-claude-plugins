@@ -101,10 +101,10 @@ test('CA-01: marketplace.json parses as JSON and has required structure', () => 
 // CA-02  plugin.json — structure contract + no version field
 // ---------------------------------------------------------------------------
 test('CA-02: plugin.json has required fields and must NOT contain a version field', () => {
-  const raw = repoRead('refacil-pay-cli/.claude-plugin/plugin.json');
+  const raw = repoRead('refacil-pay/.claude-plugin/plugin.json');
   const json = JSON.parse(raw);
 
-  assert.equal(json.name, 'refacil-pay-cli', 'name must be "refacil-pay-cli"');
+  assert.equal(json.name, 'refacil-pay', 'name must be "refacil-pay"');
 
   assert.ok(
     typeof json.description === 'string' && json.description.length > 0,
@@ -133,7 +133,7 @@ test('CA-02: plugin.json has required fields and must NOT contain a version fiel
 // CA-03  SKILL.md — frontmatter + body contract
 // ---------------------------------------------------------------------------
 test('CA-03: SKILL.md frontmatter has required fields and body references the refacil-pay-cli binary and all three flows', () => {
-  const content = repoRead('refacil-pay-cli/skills/refacil-pay-cli/SKILL.md');
+  const content = repoRead('refacil-pay/skills/refacil-pay-cli/SKILL.md');
   const fm = parseFrontmatter(content);
 
   assert.ok(fm !== null, 'SKILL.md must have YAML frontmatter delimited by ---');
@@ -167,7 +167,7 @@ test('CA-04: vendored skill files are byte-identical to the npm global package s
   }
 
   const npmBase = join(npmRoot, 'refacil-pay-cli', 'skills', 'refacil-pay-cli');
-  const repoBase = join(REPO_ROOT, 'refacil-pay-cli', 'skills', 'refacil-pay-cli');
+  const repoBase = join(REPO_ROOT, 'refacil-pay', 'skills', 'refacil-pay-cli');
 
   const filesToVerify = [
     'SKILL.md',
@@ -203,10 +203,10 @@ test('CA-04: vendored skill files are byte-identical to the npm global package s
 // ---------------------------------------------------------------------------
 test('CA-05: all four skill files exist and SKILL.md relative links resolve', () => {
   const required = [
-    'refacil-pay-cli/skills/refacil-pay-cli/SKILL.md',
-    'refacil-pay-cli/skills/refacil-pay-cli/references/cash-in-link.md',
-    'refacil-pay-cli/skills/refacil-pay-cli/references/cash-in-method.md',
-    'refacil-pay-cli/skills/refacil-pay-cli/references/cash-out.md',
+    'refacil-pay/skills/refacil-pay-cli/SKILL.md',
+    'refacil-pay/skills/refacil-pay-cli/references/cash-in-link.md',
+    'refacil-pay/skills/refacil-pay-cli/references/cash-in-method.md',
+    'refacil-pay/skills/refacil-pay-cli/references/cash-out.md',
   ];
 
   for (const f of required) {
@@ -214,8 +214,8 @@ test('CA-05: all four skill files exist and SKILL.md relative links resolve', ()
   }
 
   // Extract relative .md links from SKILL.md and verify each target exists.
-  const skillContent = repoRead('refacil-pay-cli/skills/refacil-pay-cli/SKILL.md');
-  const skillDir = join(REPO_ROOT, 'refacil-pay-cli', 'skills', 'refacil-pay-cli');
+  const skillContent = repoRead('refacil-pay/skills/refacil-pay-cli/SKILL.md');
+  const skillDir = join(REPO_ROOT, 'refacil-pay', 'skills', 'refacil-pay-cli');
 
   // Match markdown links like [text](relative/path.md) — skip http(s) URLs.
   const linkPattern = /\[[^\]]*\]\(((?!https?:\/\/)[^)]+\.md)\)/g;
@@ -234,7 +234,7 @@ test('CA-05: all four skill files exist and SKILL.md relative links resolve', ()
 // CA-06  README + plugin.json description — required installation strings
 // ---------------------------------------------------------------------------
 test('CA-06: README contains required installation strings and plugin.json description includes full npm install command', () => {
-  const readme = repoRead('refacil-pay-cli/README.md');
+  const readme = repoRead('refacil-pay/README.md');
 
   assert.ok(
     readme.includes('npm install -g refacil-pay-cli'),
@@ -249,11 +249,11 @@ test('CA-06: README contains required installation strings and plugin.json descr
     'README must document "/plugin marketplace add <git-repo-url>"'
   );
   assert.ok(
-    readme.includes('/plugin install refacil-pay-cli@refacil-plugins'),
-    'README must document "/plugin install refacil-pay-cli@refacil-plugins"'
+    readme.includes('/plugin install refacil-pay@refacil-plugins'),
+    'README must document "/plugin install refacil-pay@refacil-plugins"'
   );
 
-  const pluginJson = JSON.parse(repoRead('refacil-pay-cli/.claude-plugin/plugin.json'));
+  const pluginJson = JSON.parse(repoRead('refacil-pay/.claude-plugin/plugin.json'));
   assert.ok(
     pluginJson.description.includes('npm install -g refacil-pay-cli'),
     'plugin.json description must also contain "npm install -g refacil-pay-cli"'
@@ -283,8 +283,8 @@ test('CA-07: marketplace structure recognizable by /plugin marketplace add — r
     '.claude-plugin/marketplace.json must exist at the repository root'
   );
   assert.ok(
-    repoExists('refacil-pay-cli/.claude-plugin/plugin.json'),
-    'refacil-pay-cli/.claude-plugin/plugin.json must exist in the plugin subdirectory'
+    repoExists('refacil-pay/.claude-plugin/plugin.json'),
+    'refacil-pay/.claude-plugin/plugin.json must exist in the plugin subdirectory'
   );
 });
 
@@ -292,7 +292,7 @@ test('CA-07: marketplace structure recognizable by /plugin marketplace add — r
 // CA-08  README — two-layer update model
 // ---------------------------------------------------------------------------
 test('CA-08: README documents the two-layer update model (CLI binary + skill/plugin)', () => {
-  const readme = repoRead('refacil-pay-cli/README.md');
+  const readme = repoRead('refacil-pay/README.md');
 
   // Layer 1: CLI binary update via npm.
   assert.ok(
@@ -318,19 +318,19 @@ test('CA-08: README documents the two-layer update model (CLI binary + skill/plu
     'README must document the "/plugin uninstall" step in the manual update path'
   );
   assert.ok(
-    readme.includes('/plugin install refacil-pay-cli@refacil-plugins'),
-    'README must document the reinstall step "/plugin install refacil-pay-cli@refacil-plugins"'
+    readme.includes('/plugin install refacil-pay@refacil-plugins'),
+    'README must document the reinstall step "/plugin install refacil-pay@refacil-plugins"'
   );
 });
 
 // ---------------------------------------------------------------------------
 // CR-01  SKILL.md must NOT live inside .claude-plugin/
 // ---------------------------------------------------------------------------
-test('CR-01: SKILL.md must NOT exist at refacil-pay-cli/.claude-plugin/SKILL.md', () => {
+test('CR-01: SKILL.md must NOT exist at refacil-pay/.claude-plugin/SKILL.md', () => {
   assert.ok(
-    !repoExists('refacil-pay-cli/.claude-plugin/SKILL.md'),
-    'SKILL.md MUST NOT be placed inside refacil-pay-cli/.claude-plugin/ — ' +
-    'correct location is refacil-pay-cli/skills/refacil-pay-cli/SKILL.md'
+    !repoExists('refacil-pay/.claude-plugin/SKILL.md'),
+    'SKILL.md MUST NOT be placed inside refacil-pay/.claude-plugin/ — ' +
+    'correct location is refacil-pay/skills/refacil-pay-cli/SKILL.md'
   );
 });
 
@@ -362,7 +362,7 @@ test('CR-04: manifest required-field assertions would fail on an object missing 
   assert.ok('owner' in marketplaceJson, 'marketplace.json owner field is present — CA-01 check is exercised on real data');
   assert.ok('plugins' in marketplaceJson, 'marketplace.json plugins field is present — CA-01 check is exercised on real data');
 
-  const pluginJson = JSON.parse(repoRead('refacil-pay-cli/.claude-plugin/plugin.json'));
+  const pluginJson = JSON.parse(repoRead('refacil-pay/.claude-plugin/plugin.json'));
   assert.ok(!('version' in pluginJson), 'plugin.json genuinely lacks version — CA-02 no-version check is exercised on real data');
 });
 
@@ -370,7 +370,7 @@ test('CR-04: manifest required-field assertions would fail on an object missing 
 // CR-05  README must contain a pending/warning marker for Desktop/Cowork section
 // ---------------------------------------------------------------------------
 test('CR-05: README documents the confirmed Claude Cowork / Desktop installation flow', () => {
-  const readme = repoRead('refacil-pay-cli/README.md');
+  const readme = repoRead('refacil-pay/README.md');
 
   // The section about Cowork/Desktop must exist.
   const hasDesktopSection = readme.includes('Desktop') || readme.includes('Cowork');
@@ -406,7 +406,7 @@ test('CA-07+CA-01: each plugins[].source resolves to a directory containing .cla
 // CA-08 (additional): README explicitly states auto-update is off by default
 // ---------------------------------------------------------------------------
 test('CA-08 (additional): README states auto-update is disabled by default for third-party marketplaces', () => {
-  const readme = repoRead('refacil-pay-cli/README.md');
+  const readme = repoRead('refacil-pay/README.md');
 
   // The spec explicitly requires documenting that auto-update is OFF by default
   // for third-party marketplaces. Accept English or Spanish phrasing.
@@ -428,7 +428,7 @@ test('CA-08 (additional): README states auto-update is disabled by default for t
 // CA-03 (additional): three flows appear as Markdown link syntax into references/
 // ---------------------------------------------------------------------------
 test('CA-03 (additional): SKILL.md body contains Markdown link syntax for all three flows pointing into references/', () => {
-  const content = repoRead('refacil-pay-cli/skills/refacil-pay-cli/SKILL.md');
+  const content = repoRead('refacil-pay/skills/refacil-pay-cli/SKILL.md');
 
   // Assert the exact link-target forms present in the vendored SKILL.md.
   // These are read-only — we assert the real shapes that exist, not invented ones.
@@ -450,7 +450,7 @@ test('CA-03 (additional): SKILL.md body contains Markdown link syntax for all th
 // CA-02 (additional): homepage is a valid absolute URL
 // ---------------------------------------------------------------------------
 test('CA-02 (additional): plugin.json homepage is a valid absolute URL (http or https scheme)', () => {
-  const json = JSON.parse(repoRead('refacil-pay-cli/.claude-plugin/plugin.json'));
+  const json = JSON.parse(repoRead('refacil-pay/.claude-plugin/plugin.json'));
 
   assert.ok(
     typeof json.homepage === 'string' &&
@@ -479,7 +479,7 @@ test('CA-01 (additional): plugins[].name values in marketplace.json are unique',
 // CR-05 (additional): pending/warning marker is co-located with Desktop/Cowork section
 // ---------------------------------------------------------------------------
 test('CR-05 (additional): the confirmed install steps are co-located inside the Cowork/Desktop section', () => {
-  const readme = repoRead('refacil-pay-cli/README.md');
+  const readme = repoRead('refacil-pay/README.md');
   const lines = readme.split(/\r?\n/);
 
   // Locate the ## heading that mentions Cowork or Desktop.
@@ -514,7 +514,7 @@ test('CR-05 (additional): the confirmed install steps are co-located inside the 
 // CA-06 (additional): plugin.json description does not use abbreviated npm i -g
 // ---------------------------------------------------------------------------
 test('CA-06 (additional): plugin.json description does NOT use the abbreviated "npm i -g" form', () => {
-  const json = JSON.parse(repoRead('refacil-pay-cli/.claude-plugin/plugin.json'));
+  const json = JSON.parse(repoRead('refacil-pay/.claude-plugin/plugin.json'));
 
   assert.ok(
     !json.description.includes('npm i -g'),

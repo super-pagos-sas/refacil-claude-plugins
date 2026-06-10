@@ -6,7 +6,7 @@ Repositorio de **empaquetado**: no expone código de aplicación, sino manifiest
 
 - **`.claude-plugin/marketplace.json`** — Manifiesto del marketplace `refacil-plugins`. Lista los plugins disponibles y su `source` relativo. Es lo que reconoce `/plugin marketplace add`.
 
-- **`refacil-pay-cli/`** — El plugin distribuido.
+- **`refacil-pay/`** — El plugin distribuido.
   - **`.claude-plugin/plugin.json`** — Metadatos del plugin (name, description, author, homepage). **Sin** campo `version`.
   - **`skills/refacil-pay-cli/SKILL.md`** — Índice de skill (frontmatter `user-invocable: true`) que apunta a los flujos.
   - **`skills/refacil-pay-cli/references/`** — Un `.md` por flujo: `cash-in-link.md`, `cash-in-method.md`, `cash-out.md`.
@@ -17,7 +17,7 @@ Repositorio de **empaquetado**: no expone código de aplicación, sino manifiest
 - **`refacil-sdd/`** — Artefactos de la metodología SDD-AI (`changes/`, `specs/`, config).
 
 ## Patrón clave: vendorización
-Los archivos de skill bajo `refacil-pay-cli/skills/` son una **copia vendorizada** del paquete `refacil-pay-cli` publicado en npm. El test CA-04 exige que sean byte-idénticos a la fuente del global. Al actualizar el CLI, re-vendoriza los archivos desde el global y vuelve a correr `node --test`.
+Los archivos de skill bajo `refacil-pay/skills/` son una **copia vendorizada** del paquete `refacil-pay-cli` publicado en npm. El test CA-04 exige que sean byte-idénticos a la fuente del global. Al actualizar el CLI, re-vendoriza los archivos desde el global y vuelve a correr `node --test`.
 
 ## Modelo de actualización de dos capas
 1. **Binario CLI** — `npm install -g refacil-pay-cli` (lo ejecuta el usuario en su máquina).

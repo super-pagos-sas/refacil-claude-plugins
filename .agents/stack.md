@@ -12,7 +12,7 @@
 - **`refacil-sdd-ai`** (npm global) — toolchain de la metodología SDD-AI (`refacil-sdd-ai sdd ...`, hooks de SessionStart).
 
 ## Integraciones
-- **Claude Code plugin system** — `/plugin marketplace add <repo>` y `/plugin install refacil-pay-cli@refacil-plugins`.
+- **Claude Code plugin system** — `/plugin marketplace add <repo>` y `/plugin install refacil-pay@refacil-plugins`.
 - **refacil-bus** — bus de mensajería cross-repo (bloque `refacil-bus:presentation` en `AGENTS.md`).
 - **CodeGraph** — índice local del grafo de símbolos en `.codegraph/` (gitignored; habilitado a nivel global).
 

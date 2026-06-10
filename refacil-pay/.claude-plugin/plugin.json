@@ -1,11 +1,11 @@
 {
-  "name": "refacil-pay-cli",
-  "displayName": "Refácil Pay CLI",
+  "name": "refacil-pay",
+  "displayName": "Refácil Pay",
   "description": "Operador CLI de Refacil Pay. Prerequisite: npm install -g refacil-pay-cli. Enables cash-in-link, cash-in-method, and cash-out flows directly from Claude.",
   "author": {
     "name": "Refácil Super Pagos"
   },
-  "homepage": "https://github.com/super-pagos-sas/refacil-claude-plugins/tree/main/refacil-pay-cli",
+  "homepage": "https://github.com/super-pagos-sas/refacil-claude-plugins/tree/main/refacil-pay",
   "repository": "https://github.com/super-pagos-sas/refacil-claude-plugins",
   "license": "MIT"
 }

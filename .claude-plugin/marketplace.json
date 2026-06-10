@@ -6,9 +6,9 @@
   },
   "plugins": [
     {
-      "name": "refacil-pay-cli",
-      "displayName": "Refácil Pay CLI",
-      "source": "./refacil-pay-cli",
+      "name": "refacil-pay",
+      "displayName": "Refácil Pay",
+      "source": "./refacil-pay",
       "description": "Operador CLI de Refácil Pay para cash-in (link y método) y cash-out desde Claude. Prerequisito: npm install -g refacil-pay-cli."
     }
   ]

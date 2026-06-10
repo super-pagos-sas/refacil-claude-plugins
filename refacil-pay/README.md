@@ -1,4 +1,4 @@
-# refacil-pay-cli plugin
+# refacil-pay plugin
 
 Claude Code plugin that wraps the `refacil-pay-cli` CLI to enable Refacil Pay operations (cash-in via link, cash-in via payment method, and cash-out to Bre-B) directly from Claude Code sessions.
 
@@ -27,7 +27,7 @@ Replace `<git-repo-url>` with the URL of this repository (e.g. `https://github.c
 **Step 2 — Install the plugin:**
 
 ```
-/plugin install refacil-pay-cli@refacil-plugins
+/plugin install refacil-pay@refacil-plugins
 ```
 
 After installation, reload plugins in the current session:
@@ -36,7 +36,7 @@ After installation, reload plugins in the current session:
 /reload-plugins
 ```
 
-The skill becomes available as `/refacil-pay-cli:refacil-pay-cli`.
+The skill becomes available as `/refacil-pay:refacil-pay-cli`.
 
 ## Installation (Claude Cowork / Claude Desktop)
 
@@ -49,7 +49,7 @@ native UI — no slash command required. Source:
 3. Under **Personal plugins**, click **"+"** → **Add marketplace**.
 4. Choose **Add from a repository** ("Sync a marketplace from a GitHub repository or git URL").
 5. Enter this repository's URL (e.g. `https://github.com/super-pagos-sas/refacil-claude-plugins`
-   or the `owner/repo` short form), then add the `refacil-pay-cli` plugin from it.
+   or the `owner/repo` short form), then add the `refacil-pay` plugin from it.
 
 > **Note (repository requirements):** Cowork syncs the marketplace from the repository's
 > **default branch**, so `.claude-plugin/marketplace.json` must be on `main` (or whatever the
@@ -65,7 +65,7 @@ consistent. See the enterprise plugin administration docs for the admin console 
 
 In **Claude Desktop's Code tab** and the **Claude Code CLI**, the same marketplace is added
 with the slash command shown above (`/plugin marketplace add <git-repo-url>` →
-`/plugin install refacil-pay-cli@refacil-plugins`).
+`/plugin install refacil-pay@refacil-plugins`).
 
 ## Updates (two-layer model)
 
@@ -106,8 +106,8 @@ There is no `/plugin update` command. To update manually:
 
 ```
 /plugin marketplace update refacil-plugins
-/plugin uninstall refacil-pay-cli@refacil-plugins
-/plugin install refacil-pay-cli@refacil-plugins
+/plugin uninstall refacil-pay@refacil-plugins
+/plugin install refacil-pay@refacil-plugins
 /reload-plugins
 ```
 
