@@ -1,0 +1,37 @@
+currentState: archived
+stateHistory:
+  - proposed|2026-06-09T22:53:42.362Z|proposer
+  - approved|2026-06-09T23:07:15.670Z|propose-skill
+  - apply-in-progress|2026-06-09T23:58:52.714Z|apply-skill
+  - applied|2026-06-10T00:08:57.792Z|apply-skill
+  - tested|2026-06-10T00:18:56.867Z|test-skill
+  - verified|2026-06-10T00:25:00.784Z|verify-skill
+  - reviewed|2026-06-10T00:32:52.808Z|review-skill
+  - archived|2026-06-10T00:34:22.314Z|archive-skill
+lastStep: test
+touchedFiles:
+  - .claude-plugin/marketplace.json
+  - refacil-pay-cli/.claude-plugin/plugin.json
+  - refacil-pay-cli/skills/refacil-pay-cli/SKILL.md
+  - refacil-pay-cli/skills/refacil-pay-cli/references/cash-in-link.md
+  - refacil-pay-cli/skills/refacil-pay-cli/references/cash-in-method.md
+  - refacil-pay-cli/skills/refacil-pay-cli/references/cash-out.md
+  - refacil-pay-cli/README.md
+  - test/feat-cowork-marketplace.test.mjs
+  - AGENTS.md
+stackDetected: Node.js built-in test runner (node:test)
+commandsRun: node --test test/feat-cowork-marketplace.test.mjs
+criteriaRun:
+  - CA-01
+  - CA-02
+  - CA-03
+  - CA-04
+  - CA-05
+  - CA-06
+  - CA-07
+  - CA-08
+  - CR-01
+  - CR-02
+  - CR-03
+  - CR-04
+  - CR-05

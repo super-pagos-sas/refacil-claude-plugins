@@ -1,0 +1,14 @@
+{
+  "name": "refacil-plugins",
+  "description": "Plugins oficiales de Refácil para Claude Code — empaqueta el CLI refacil-pay-cli como skill instalable.",
+  "owner": {
+    "name": "Refácil"
+  },
+  "plugins": [
+    {
+      "name": "refacil-pay-cli",
+      "source": "./refacil-pay-cli",
+      "description": "Operador CLI de Refácil Pay para cash-in (link y método) y cash-out desde Claude Code. Prerequisito: npm install -g refacil-pay-cli."
+    }
+  ]
+}
