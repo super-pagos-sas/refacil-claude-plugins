@@ -1,5 +1,6 @@
 {
   "name": "refacil-pay-cli",
+  "displayName": "Refácil Pay CLI",
   "description": "Operador CLI de Refacil Pay. Prerequisite: npm install -g refacil-pay-cli. Enables cash-in-link, cash-in-method, and cash-out flows directly from Claude.",
   "author": {
     "name": "Refácil Super Pagos"
