@@ -22,7 +22,7 @@ Requires Node.js >= 20. Run this command each time a major upgrade is needed. Do
 /plugin marketplace add <git-repo-url>
 ```
 
-Replace `<git-repo-url>` with the URL of this repository (e.g. `https://github.com/erikole21/refacil-claude-plugins` or the short `owner/repo` form if hosted on GitHub).
+Replace `<git-repo-url>` with the URL of this repository (e.g. `https://github.com/super-pagos-sas/refacil-claude-plugins` or the short `owner/repo` form if hosted on GitHub).
 
 **Step 2 — Install the plugin:**
 
