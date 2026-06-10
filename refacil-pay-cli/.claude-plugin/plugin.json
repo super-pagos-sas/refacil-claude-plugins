@@ -4,6 +4,7 @@
   "author": {
     "name": "Refácil Super Pagos"
   },
-  "homepage": "https://github.com/super-pagos-sas/refacil-claude-plugins",
+  "homepage": "https://github.com/super-pagos-sas/refacil-claude-plugins/tree/main/refacil-pay-cli",
+  "repository": "https://github.com/super-pagos-sas/refacil-claude-plugins",
   "license": "MIT"
 }
