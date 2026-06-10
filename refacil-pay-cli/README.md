@@ -38,17 +38,34 @@ After installation, reload plugins in the current session:
 
 The skill becomes available as `/refacil-pay-cli:refacil-pay-cli`.
 
-## Installation (Claude Desktop / Cowork Code tab)
+## Installation (Claude Cowork / Claude Desktop)
 
-> **WARNING — PENDING LIVE VERIFICATION**: The step-by-step flow to add a **third-party marketplace** from within the Claude Desktop GUI is not explicitly documented in the official Claude Desktop reference (`https://code.claude.com/docs/en/desktop.md` as of 2026-06-09). The docs confirm Desktop has a "Plugin manager UI" with a `+ button → Plugins → Add plugin` flow that shows plugins from already-configured marketplaces, but the specific UI path to **register a new third-party marketplace** (equivalent to `/plugin marketplace add`) is not clearly described.
->
-> The safest documented approach is to type the slash command directly in the Code tab's chat input:
-> ```
-> /plugin marketplace add <git-repo-url>
-> ```
-> Then follow with `/plugin install refacil-pay-cli@refacil-plugins` and `/reload-plugins`. This approach should work in Desktop local/SSH sessions, but has **not been validated against the live Desktop UI**. Do not treat this as a confirmed step-by-step guide until validated.
->
-> Once verified in the live UI, this section must be updated to replace or supplement the CLI command with the confirmed GUI steps.
+Cowork supports adding third-party marketplaces from a GitHub repository through a
+native UI — no slash command required. Source:
+[Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-plugins-in-claude).
+
+1. Open the **Cowork** tab, then open **Customize**.
+2. Go to the **Plugins** tab.
+3. Under **Personal plugins**, click **"+"** → **Add marketplace**.
+4. Choose **Add from a repository** ("Sync a marketplace from a GitHub repository or git URL").
+5. Enter this repository's URL (e.g. `https://github.com/super-pagos-sas/refacil-claude-plugins`
+   or the `owner/repo` short form), then add the `refacil-pay-cli` plugin from it.
+
+> **Note (repository requirements):** Cowork syncs the marketplace from the repository's
+> **default branch**, so `.claude-plugin/marketplace.json` must be on `main` (or whatever the
+> default branch is) — not on a feature branch. If the repository is **private**, each user
+> must be authenticated to GitHub (`gh auth login` or a token); background auto-update of a
+> private marketplace additionally requires `GITHUB_TOKEN` in the environment. A **public**
+> repository needs no credentials.
+
+**Organization-wide (enterprise):** admins can distribute this marketplace to a whole team
+via Cowork's organization-managed plugins (private marketplaces backed by a GitHub repo).
+Organization-managed plugins cannot be edited by individual users, keeping shared tooling
+consistent. See the enterprise plugin administration docs for the admin console steps.
+
+In **Claude Desktop's Code tab** and the **Claude Code CLI**, the same marketplace is added
+with the slash command shown above (`/plugin marketplace add <git-repo-url>` →
+`/plugin install refacil-pay-cli@refacil-plugins`).
 
 ## Updates (two-layer model)
 
