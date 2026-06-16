@@ -69,22 +69,31 @@ refacil-pay-cli config get-webhook-url
 ### Tunnel prerequisite (`--webhook-local`)
 
 `--webhook-local` spins up the tunnel using the configured provider: **`cloudflared`**.
+> **Preferred provider:** `cloudflared` is the default because it is **more reliable** than localtunnel.
+> Keep it as the provider. Switching to localtunnel is a **temporary, zero-install fallback** only —
+> it **persists** in the config (it is not a one-off), so prefer installing/fixing `cloudflared`, and if
+> you do switch, revert afterwards with `refacil-pay-cli config delete webhook-provider`.
 `cloudflared` is an **external binary this CLI does NOT bundle or auto-install**. Before running any step with `--webhook-local`:
 
 1. **Verify it is installed** — run `cloudflared --version`.
 2. **If it is missing, STOP — do NOT run the command** (it would fail, and a misconfigured run could send an invalid webhook URL). Tell the user and offer one of:
    - Install `cloudflared` with a manager that sets PATH for you (avoids the issue below): Windows → `scoop install cloudflared` (no admin) or `choco install cloudflared` · macOS → `brew install cloudflared` · Linux → distro package or download into a dir on PATH (e.g. `/usr/local/bin`). Cloudflare downloads: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
    - **`winget install cloudflare.cloudflared` works but often does NOT add it to PATH** (portable shims need Developer Mode/restart). If you used winget and `cloudflared --version` fails, either add its folder to PATH and **restart the terminal/IDE** (so the new PATH is inherited), or point the CLI straight at the binary via the `CLOUDFLARED_BIN` env var set to the full path of `cloudflared.exe`.
-   - **Or** switch to the zero-install provider: `refacil-pay-cli config set-webhook-provider localtunnel`
+   - **Or**, as a **temporary fallback**, switch to the zero-install provider:
+     `refacil-pay-cli config set-webhook-provider localtunnel`. ⚠ This **persists** in the config and
+     localtunnel is **less reliable** than `cloudflared` — prefer installing/fixing
+     `cloudflared`. To revert to the default later:
+     `refacil-pay-cli config delete webhook-provider`.
 3. **Only continue once the user confirms** the binary is reachable (installed and on PATH, or `CLOUDFLARED_BIN` set, or switched providers). Do not auto-install anything; do not proceed with `--webhook-local` while the provider is unavailable.
 
-> **⚠ Delivery order — `--webhook-local` blocks; always hand over the resource FIRST.** When `--webhook-local` is used, the create command prints the generated resource (its URL / QR and reference) and **then keeps running until the first callback arrives** — at which point it prints the callback and **closes by itself** — or until it times out (~8 min) with no callback. Do **NOT** wait on that callback before responding to the user. Always follow this order:
+> **⚠ HARD RULE — never block the conversation waiting on the webhook.** With `--webhook-local` the create command prints the generated resource immediately and **then keeps running until the first callback arrives** (or until it times out, ~8 min). If you run it in the **foreground**, your tool call will not return until then, so you stay stuck in the same turn and never reply with what you generated — this is exactly the "the link was created but the assistant never answered" failure. Always follow this order:
 >
-> 1. Read the generated resource from the command's **immediate** output (run it with `--json` and parse the URL / QR and reference from the response).
-> 2. **Present the resource to the user** and **offer to send it via WhatsApp** (see the *Envio por WhatsApp* section above).
-> 3. **Only after** the resource has been delivered, look at the webhook output for the incoming callback (or use the status step below to confirm the payment).
+> 1. **Run the create command in the background / non-blocking mode** so the tunnel never blocks the conversation. **Never run it in the foreground.**
+> 2. **Read the generated resource from the command's immediate output** (run it with `--json` and parse the URL / QR and reference from the response).
+> 3. **Reply to the user right away with the resource**, and offer to send it via WhatsApp (see the *Envio por WhatsApp* section above). Do **NOT** wait for the callback before replying.
+> 4. **Only afterwards**, as a **separate** action, read the callback from the background process output (it closes by itself when the first notification arrives) — or use the status step below to confirm the payment. Checking the webhook is **never** a prerequisite for responding, and you must never withhold the generated resource while waiting on it.
 >
-> Practically: run the create command in the background so the tunnel does not block the conversation, surface the printed resource right away, and let the process finish on its own — it terminates as soon as the first notification arrives, so you can then read the callback from its output. Never withhold the generated resource from the user while waiting on the webhook.
+> **If your harness cannot run a process in the background (no non-blocking execution), do NOT use `--webhook-local` at all** — it blocks by design and will hang your turn. Instead create the resource with a stored/explicit `--webhook-url` (or with no webhook), reply with the resource immediately, and confirm the payment later with the **status step** below (poll on demand). Only use `--webhook-local` when you can truly run it detached.
 
 ### Desktop notification & authenticity check (`--webhook-local`)
 

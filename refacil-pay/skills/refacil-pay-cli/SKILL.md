@@ -66,7 +66,7 @@ If there is **no active session**, the agent resolves it like this (the agent ru
    ```
    refacil-pay-cli register
    ```
-   This opens the sign-up page (sandbox: https://prep.autoregistro.refacilpay.co/ / prod: https://autoregistro.refacilpay.co/) in the browser for the active environment. Then tell the user:
+   This opens the sign-up page (sandbox: https://autoregistro.qa.refacilpay.co/ / prod: https://autoregistro.refacilpay.co/) in the browser for the active environment. Then tell the user:
    > *"I just opened the Refácil Pay sign-up page in your browser — create your account there and tell me when you're done."*
 3. **If they DO have an account** — the agent runs:
    ```
@@ -76,20 +76,25 @@ If there is **no active session**, the agent resolves it like this (the agent ru
    > *"I just opened the Refácil Pay login page in your browser — sign in there and tell me when you're done."*
 4. When the user says they finished, re-run `refacil-pay-cli whoami`. If authenticated, continue with the task; otherwise repeat the step.
 
-> **Agent note — security**: The agent runs only the **browser-based** `login` command and `register` — the user enters credentials in the browser, never in the chat or terminal. **Never** run `refacil-pay-cli login --console` on the user's behalf, and never ask for the user's password. The agent triggers these commands but never sees the credentials.
+> **Agent note — security**: The agent runs only the **browser-based** `login` (or `login --device` when isolated) and `register` — the user enters credentials in the browser or on the device verification page, never in the chat or terminal. **Never** run `refacil-pay-cli login --console` on the user's behalf, and never ask for the user's password. The agent triggers these commands but never sees the credentials.
 
-### Autenticación en entornos headless
+### Elegir el flujo de autenticación (tú decides, el CLI no auto-detecta)
 
-When the agent runs in a **headless environment** (no browser, no display, or non-TTY stdin — e.g. Claude Desktop, Cowork, CI), use the **Device Authorization Grant** (RFC 8628) instead of the default loopback OAuth flow.
+The CLI does **not** guess the environment — **you** choose, because you know whether you can open a browser and receive a `127.0.0.1` callback.
 
-**How to detect a headless environment:**
+**Prefer `refacil-pay-cli login` (loopback OAuth 2.1 + PKCE) — it is the secure default.** PKCE binds the authorization to this machine, the code is not transcribable/phishable, and the token travels only in the back-channel. Use it whenever you can open a browser and catch the localhost callback. Local desktop agents (Claude Code, Cursor, OpenCode, Antigravity) fall here.
 
-Run `refacil-pay-cli whoami --json` and check the response fields:
-- `headless: true` → must use device flow.
-- `keychainAvailable: false` → token will be stored in `~/.config/refacil-pay-cli/credentials.json` (0600).
-- `tokenSource` → where the active token came from (`"env"`, `"keychain"`, `"file"`, or `"flag"`).
+```
+refacil-pay-cli login
+```
 
-**Device flow sequence:**
+**Use `refacil-pay-cli login --device` only when you are isolated** and cannot open a browser or receive a localhost callback — e.g. a remote/cloud sandbox (Codex), CI, or an SSH-only host. (`REFACIL_PAY_CLI_HEADLESS=1` is the non-interactive equivalent of `--device`.)
+
+After login, you can inspect `refacil-pay-cli whoami --json`:
+- `keychainAvailable: false` → token is stored in `~/.config/refacil-pay-cli/credentials.json` (0600) instead of the OS keychain.
+- `tokenSource` → where the active token came from (`"keychain"`, `"file"`, or `"flag"`).
+
+**Device flow sequence (when you chose `--device`):**
 
 1. **Run the device flow login:**
    ```
@@ -108,7 +113,30 @@ Run `refacil-pay-cli whoami --json` and check the response fields:
    ```
    If `authenticated: true`, continue with the task. Otherwise, repeat step 1.
 
-> **Prohibition**: Never run `refacil-pay-cli login --console` in a headless environment. Never ask the user for their password in the chat.
+> **Prohibition**: Never run `refacil-pay-cli login --console` on the user's behalf. Never ask the user for their password in the chat.
+
+### Device flow en background
+
+> **NEVER** run `refacil-pay-cli login --device` in a blocking foreground call inside a Desktop or Cowork AI session — it blocks the agent thread while polling and the verification URL/code cannot be relayed to the user.
+
+**Pattern for non-blocking device flow** (use when you must trigger login from a session that cannot block):
+
+```bash
+# 1. Start the device flow in the background, redirect output to a temp file
+refacil-pay-cli login --device > /tmp/device-login.txt 2>&1 &
+
+# 2. Wait for the device-code response (10 s covers slow server round-trips)
+sleep 10 && cat /tmp/device-login.txt
+```
+
+3. **Extract and relay to the user** the lines that start with `Visit:` and `Enter code:`:
+   > *"Please visit **[Visit: URL]** and enter code **[Enter code: CODE]** to authorize the CLI. Tell me when you are done."*
+
+4. After the user confirms:
+   ```
+   refacil-pay-cli whoami --json
+   ```
+   If `authenticated: true`, continue. Otherwise ask the user to retry and repeat from step 1.
 
 > **Console login fields** (for reference only — the agent never runs `--console`): `refacil-pay-cli login --console` prompts for: `username`, `password`. The user must run this command themselves in the terminal if they prefer it.
 
