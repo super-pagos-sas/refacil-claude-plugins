@@ -1,12 +1,22 @@
 ---
 flow: cash-out
-description: "Enviar fondos hacia llave Bre-B. Prerequisito: sesión activa — ejecutar `refacil-pay-cli login` si no hay credenciales guardadas. Flujo: verificar saldo → generar token transaccional (tipo retiro) → ejecutar retiro. Entrega siempre el recurso al usuario antes de revisar el webhook o el estado."
+description: "Enviar fondos hacia llave Bre-B. Prerequisito: sesión activa — ejecutar `refacil-pay-cli login` si no hay credenciales guardadas. Flujo: verificar saldo → generar token transaccional (tipo retiro) → ejecutar retiro → verificar estado. Entrega siempre el recurso al usuario antes de revisar el webhook o el estado."
 ---
 
 # Flow: cash-out
 
-Enviar fondos hacia llave Bre-B. Prerequisito: sesión activa — ejecutar `refacil-pay-cli login` si no hay credenciales guardadas. Flujo: verificar saldo → generar token transaccional (tipo retiro) → ejecutar retiro. Entrega siempre el recurso al usuario antes de revisar el webhook o el estado.
+Enviar fondos hacia llave Bre-B. Prerequisito: sesión activa — ejecutar `refacil-pay-cli login` si no hay credenciales guardadas. Flujo: verificar saldo → generar token transaccional (tipo retiro) → ejecutar retiro → verificar estado. Entrega siempre el recurso al usuario antes de revisar el webhook o el estado.
 
+
+## Recolección de datos — qué preguntar
+
+Gather this flow's inputs **conversationally**, applying the communication style from SKILL.md (*Talking to the user*):
+
+- Translate every required input in the **Steps** below into a plain, business-language question — never show the flag name, its type, or the JSON shape to the user.
+- Ask **only for what is still missing** from the conversation; never re-ask a value the user already provided. Group closely related fields into one question and keep it short.
+- Mention optional inputs briefly and let the user skip them (the CLI falls back to its default or leaves them out).
+- For a read-only lookup (balance, status) just ask for the single identifier it needs, if any.
+- Once you have everything: for a dangerous (money/irreversible) step, restate a plain-language summary (amount, recipient, method) and get an explicit confirmation **before** running it; then deliver the generated resource to the user right away (see the deliver-first / webhook guidance below).
 
 ## Auto-fill IP
 
@@ -55,12 +65,22 @@ refacil-pay-cli config get-webhook-url
 
 > **⚠ HARD RULE — never block the conversation waiting on the webhook.** With `--webhook-local` the create command prints the generated resource immediately and **then keeps running until the first callback arrives** (or until it times out, ~8 min). If you run it in the **foreground**, your tool call will not return until then, so you stay stuck in the same turn and never reply with what you generated — this is exactly the "the link was created but the assistant never answered" failure. Always follow this order:
 >
-> 1. **Run the create command in the background / non-blocking mode** so the tunnel never blocks the conversation. **Never run it in the foreground.**
+> 1. **Run the create command detached, redirecting its output to a log file and capturing its PID** so the tunnel never blocks the conversation. **Never run it in the foreground.** bash: `refacil-pay-cli <cmd> --webhook-local --json > webhook.log 2>&1 & echo $! > webhook.pid`; Windows PowerShell: `$p = Start-Process powershell -ArgumentList "-NoProfile","-NonInteractive","-Command","& { refacil-pay-cli <cmd> --webhook-local --json *>&1 | Out-File -FilePath webhook.log -Encoding utf8 }" -WorkingDirectory '<your-workspace-dir>' -PassThru -WindowStyle Hidden; $p.Id | Set-Content webhook.pid` (or prefer your harness's background-run option — see *Running long commands in the background* in SKILL.md).
 > 2. **Read the generated resource from the command's immediate output** (run it with `--json` and parse the URL / QR and reference from the response).
 > 3. **Reply to the user right away with the resource**. Do **NOT** wait for the callback before replying.
-> 4. **Only afterwards**, as a **separate** action, read the callback from the background process output (it closes by itself when the first notification arrives) — or use the status step below to confirm the payment. Checking the webhook is **never** a prerequisite for responding, and you must never withhold the generated resource while waiting on it.
+> 4. **Only afterwards** — to notify the user the moment the payment lands — as a **separate** step, **wait for the background process to exit**: it closes itself as soon as a valid payment callback arrives, so waiting on the process (not a fixed `sleep`) unblocks within seconds of the payment. The instant it exits, read `webhook.log` and tell the user. e.g. bash: `while kill -0 $(cat webhook.pid) 2>/dev/null; do sleep 3; done; cat webhook.log` (cap it at ~8 min); PowerShell: poll `Get-Process -Id (Get-Content webhook.pid) -ErrorAction SilentlyContinue` until it returns nothing, then read the log. **If your harness can notify you when a background process finishes, use that instead of polling.** Checking the webhook is **never** a prerequisite for replying with the resource (step 3); never withhold the resource while waiting. (Alternatively, confirm on demand with the status step below.)
 >
-> **If your harness cannot run a process in the background (no non-blocking execution), do NOT use `--webhook-local` at all** — it blocks by design and will hang your turn. Instead create the resource with a stored/explicit `--webhook-url` (or with no webhook), reply with the resource immediately, and confirm the payment later with the **status step** below (poll on demand). Only use `--webhook-local` when you can truly run it detached.
+> **`--webhook-local` requires a real detached background process. If you do NOT have one** (your harness has no background execution, or the powershell background command is unavailable or failed) — **do NOT use `--webhook-local`**. Instead: create the resource with `--webhook-url <url>` (or with no webhook flag), reply with the resource immediately, and confirm the payment on demand with `refacil-pay-cli payment-status --reference <ref> --json`. This is the safe default — **never use `--webhook-local` when background execution is uncertain or failed**.
+
+### Post-create checklist (`--webhook-local`) — DO NOT SKIP ANY STEP
+
+After a create command with `--webhook-local`, tick **every** box, **in order** — do not stop early just because the resource was created:
+
+- [ ] **1. Reply to the user with the generated resource** (URL/QR + reference) — parse it from the `--json` output.
+- [ ] **2. Start the wait/poll loop** for the background process to exit (it closes on the first valid payment callback).
+- [ ] **3. Read `webhook.log`** once the process exits.
+- [ ] **4. Validate against the API** — `refacil-pay-cli payment-status --reference <ref> --json`; confirm the real state, never trust the callback alone.
+- [ ] **5. Notify the user** of the confirmed payment result.
 
 ### Desktop notification & authenticity check (`--webhook-local`)
 
@@ -86,27 +106,36 @@ Most flags are plain scalars, passed as-is:
 - **number** — `--<field> 50000` (digits only; no quotes, thousands separators, or currency symbols)
 - **boolean** — `--<field> true`
 
-Some flags are **JSON** — type `object` or `array`, marked per flag in the **Steps** below. The robust way to pass them is a **file** referenced with `@` (sidesteps all shell-quoting issues):
+Some flags are **JSON** — type `object` or `array`, marked per flag in the **Steps** below. JSON over the shell is where agents waste the most time (quoting, escaping, encoding). Follow this exactly and you will get it right on the **first** try — do not trial-and-error.
 
-1. Write the JSON to a file using your file-writing tool, or the redirection of the shell you are **actually** in — **pick one shell and stay in it**. Mixing shells is the #1 cause of failures here (e.g. running a PowerShell cmdlet under bash):
-   - bash / sh: `printf '%s' '{"key":"value"}' > payload.json`
-   - PowerShell: `Set-Content -Path payload.json -Value '{"key":"value"}' -Encoding utf8`
-2. Verify the file exists, then pass it by path:
+### Method 1 — write the file with YOUR file-writing tool (DEFAULT — use this)
+
+Do **not** build the JSON through the shell. Use your own file-creation/editing tool (the same one you use to write source files) to create `payload.json`. It writes clean UTF-8 with **no BOM** and **no shell quoting**, which removes both classes of failure at once.
+
+1. Write the JSON object/array to `payload.json` with your file tool.
+2. Pass it by path (the `@` prefix tells the CLI to read+parse the file):
    ```bash
    refacil-pay-cli <command> --<field> @payload.json
    ```
-3. **Delete the temp file once the command finishes** (whether it succeeded or failed) — these payloads hold sensitive data (identifiers, IPs, customer/commerce info) and must not be left on disk:
-   - bash / sh: `rm -f payload.json`
-   - PowerShell: `Remove-Item payload.json -Force`
+   > **PowerShell:** quote any argument that starts with `@` — write `'@payload.json'` (single quotes), because a bare `@…` is read as PowerShell's splatting operator. (bash/sh: `@payload.json` unquoted is fine.)
+3. **Delete the temp file once the command finishes** (success or failure) — these payloads hold sensitive data (identifiers, IPs, customer/commerce info) and must not be left on disk. Use your file tool, or `rm -f payload.json` (bash) / `Remove-Item payload.json -Force` (PowerShell).
 
-Alternatives:
+### Method 2 — stdin via `@-` (bash/sh only; no file to clean up)
 
-- **stdin (no temp file — preferred)** — pipe the JSON and use `@-`, so there is **nothing to clean up**: `echo '{"key":"value"}' | refacil-pay-cli <command> --<field> @-`
-- **Inline JSON** — `refacil-pay-cli <command> --<field> '{"key":"value"}'` (one command, no file, but quoting is shell-specific and error-prone on PowerShell).
+```bash
+echo '{"key":"value"}' | refacil-pay-cli <command> --<field> @-
+```
+
+Use this only in **bash/sh**. Do not use it from PowerShell — its `echo` and pipeline encoding behave differently and corrupt the payload.
+
+### What NOT to do
+
+- **Do NOT** generate the JSON file with shell redirection. In particular `Set-Content`/`Out-File -Encoding utf8` on **Windows PowerShell 5.1 writes a UTF-8 BOM** that has historically broken JSON parsing — Method 1 avoids it entirely. (This CLI now strips a leading BOM defensively, but don't rely on it: prefer Method 1.)
+- **Do NOT** mix shells — never call a PowerShell cmdlet (`Out-File`, `Set-Content`) inside a bash command, or use `>`/`printf` redirection inside PowerShell.
+- **Do NOT** split a JSON field into loose key/value flags.
+- **Avoid inline JSON** (`--<field> '{"key":"value"}'`): one command, no file, but the quoting is shell-specific and the #1 source of failures on PowerShell. Use Method 1 instead.
 
 The `@` prefix (and `@-`) is interpreted only for object/array fields.
-
-> **Get the format right the first time — don't trial-and-error.** Choose ONE shell and do not mix syntaxes: never call a PowerShell cmdlet (`Out-File`, `Set-Content`) inside a bash command, or `>`/`printf` redirection inside PowerShell. For every flag marked `(object)`/`(array)`, build the JSON from that step's field table, write it to a file (or pipe via `@-`), verify it, pass it, **then delete the file**. Prefer `@-` (stdin) to avoid leaving any file behind. Never split a JSON field into loose key/value flags.
 
 ## Reading command output
 
@@ -197,10 +226,46 @@ The `key` field must contain a valid Bre-B account alias in the format `@USERNAM
 > Use the returned values to populate the payment method fields in the step below.
 
 ```bash
-refacil-pay-cli cash-out-withdraw --amount <amount> --webhook-request <webhook-request> --withdraw-method @withdraw-method.json --user-metadata @user-metadata.json --json
+refacil-pay-cli cash-out-withdraw --amount <amount> --withdraw-method @withdraw-method.json --user-metadata @user-metadata.json --yes --json
 ```
 **Required flags:**
 - `--amount` (number) — Field: amount
-- `--webhook-request` (string) — Field: webhookRequest
 - `--withdraw-method` (object) — Field: withdrawMethod — JSON; prefer `--withdraw-method @withdraw-method.json` (see **Argument format**). Example: `{"id":264,"key":"@REPRUEBAL7717"}`
 - `--user-metadata` (object) — Field: userMetadata — JSON; prefer `--user-metadata @user-metadata.json` (see **Argument format**). Example: `{"identifier":"1234567890","ip":"127.0.0.1","urlCommerce":"https://url-tucomercio.com"}`
+> **WARNING — dangerous operation.** This command is classified `dangerous`: it can move money, delete data, or otherwise change state irreversibly. Confirm the specific operation and its key parameters (e.g. amount, recipient, target resource) with the user in the chat **before** running it. Only after the user confirms in the chat, run it with `--yes` (the human approval happens in the chat — never pass `--yes` without explicit user confirmation).
+
+### Step 4: Verificar estado del retiro
+This service allows you to check the status of a transaction made, for this you must have the _reference_ data that returned the response when generating any payment resource.
+
+In the response you will get the _status_ _id_ which will mean the following
+
+0 - Transaction Rejected
+
+1 - Pending Transaction
+
+2 - Transaction Approved
+
+3 - Failed Transaction
+
+5 - Transaction Cancelled
+
+9 - Processing Transaction
+
+Headers
+
+| **Name** | **Value** |
+| --- | --- |
+| Content-Type | application/json |
+| Authorization | Bearer |
+
+Body
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `reference`\* | string | Product reference |
+
+```bash
+refacil-pay-cli payment-status --reference <reference> --json
+```
+**Required flags:**
+- `--reference` (string) — Field: reference
