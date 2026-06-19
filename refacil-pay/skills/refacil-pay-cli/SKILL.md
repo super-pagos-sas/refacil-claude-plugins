@@ -33,9 +33,9 @@ npm install -g refacil-pay-cli
 
 ## Operating contract — apply on every task, never skip a step
 
-1. **Auth:** run `refacil-pay-cli login` **yourself, in the foreground with a ~5 min command timeout** — it opens the browser and returns on success. **Do not background it, do not open a separate console, do not run it in a sub-agent.** Never ask the user to run a login command. (Headless environments are the exception — see env-headless.md. see *Environment Detection*)
+1. **Auth:** if you **can** open a browser and catch a `127.0.0.1` callback, run `refacil-pay-cli login` **yourself, in the foreground with a ~5 min command timeout** — it opens the browser and returns on success. **Do not background it, do not open a separate console, do not run it in a sub-agent.** **If you CANNOT open a browser (Claude Desktop, Cowork, cloud sandbox, CI, SSH-only) → use device mode (env-headless.md): start, relay the code, redeem — it does not block and needs no background process.** Never ask the user to run a login command. (see *Environment Detection*)
 2. **JSON flags** (`object`/`array`): write the payload with your own file-writing tool and pass it as `@file.json`; never inline JSON, never `Out-File`/`Set-Content`. (see *Passing JSON arguments*)
-3. **Long-running background commands** (`--webhook-local`, tunnels, and headless device login): run them **detached → output to a log file → read it in a later step**; never run them in the foreground and never use PowerShell `Start-Job`/`Get-Job`. **Loopback `login`/`register` are NOT in this category** — run them in the **foreground with a ~5 min timeout** (they open the browser and return on success). (see *Running long commands in the background*)
+3. **Long-running background commands** (`--webhook-local` and tunnels): run them **detached → output to a log file → read it in a later step**; never run them in the foreground and never use PowerShell `Start-Job`/`Get-Job`. **Loopback `login`/`register` are NOT in this category** — run them in the **foreground with a ~5 min timeout** (they open the browser and return on success). **Headless device login is NOT in this category either** — it is two quick non-blocking commands (start, then redeem), no background process (see env-headless.md). (see *Running long commands in the background*)
 4. **After a create with `--webhook-local`:** reply to the user with the generated resource FIRST, then wait for the background process to exit, read its log, validate with `refacil-pay-cli payment-status`, and notify — **do every step, in order**. If background execution is unavailable, use `--webhook-url` or no webhook + `payment-status` on demand instead. (see *Webhook callback*)
 5. **Dangerous (money/destructive) commands:** confirm the exact operation with the user in the chat, then run with `--yes`.
 
@@ -68,14 +68,17 @@ Read the fields `headless`, `keychainAvailable`, and `tokenSource` to select the
 
 | Condition | Environment file |
 |---|---|
+| **You cannot open a browser or receive a `127.0.0.1` loopback callback** (Claude Desktop, Cowork, cloud sandbox, CI, SSH-only) | [references/env-headless.md](references/env-headless.md) **(device grant)** |
 | `headless: true` | [references/env-headless.md](references/env-headless.md) |
 | `headless: false` and `keychainAvailable: true` | [references/env-local.md](references/env-local.md) |
 | `headless: false` and `keychainAvailable: false` | [references/env-headless.md](references/env-headless.md) |
 | Deployed server / no interactive session | [references/env-server.md](references/env-server.md) |
 
+**The first row decides for agents.** The `headless` field only reports the explicit `REFACIL_PAY_CLI_HEADLESS` override — the CLI does **not** auto-detect — so it can read `false` even when you (an agent) have no browser. The capability is yours to know: **if you cannot open a browser and catch a loopback callback, follow env-headless.md (device grant)** regardless of the `headless` value. Device mode does not block and needs no background process — it persists a code, you relay it, then you redeem (see env-headless.md).
+
 When in doubt, ask the user: "Are you running this in a local desktop, a headless/cloud sandbox, or a deployed server?"
 
-> **You (the agent) run the authentication yourself — never ask the user to run a login command in their terminal.** Open and follow the selected `references/env-*.md`, execute its login command **as a background process**, then poll `refacil-pay-cli whoami --json` until `authenticated: true`. The user only completes the browser sign-in (local) or enters the device code (headless). When a session expires, re-run the login yourself — do **not** tell the user to run it.
+> **You (the agent) run the authentication yourself — never ask the user to run a login command in their terminal.** Open and follow the selected `references/env-*.md` and run its login steps exactly as written — they differ by environment: **local/loopback** runs `refacil-pay-cli login` in the **foreground** (it opens the browser and self-completes); **headless/no-browser** uses the **device grant** — a quick start that persists a code and exits, you relay the code, then you redeem it (no background process, no blocking poll). Confirm with `refacil-pay-cli whoami --json` until `authenticated: true`. The user only completes the browser sign-in (local) or enters the device code (headless). When a session expires, re-run the login yourself — do **not** tell the user to run it.
 
 ## Flows
 - **[cash-in-link](references/cash-in-link.md)** — Cobrar al cliente mediante link de pago. Prerequisito: sesión activa — ejecutar `refacil-pay-cli login` si no hay credenciales guardadas. Flujo: generar token transaccional (tipo link) → crear link de cobro → verificar estado. Entrega siempre el recurso al usuario y ofrece enviarlo por WhatsApp antes de revisar el webhook o el estado.
@@ -117,7 +120,7 @@ Scalars are passed as-is: strings quoted, numbers as digits only (no thousands s
 
 ## Running long commands in the background (the right way)
 
-`--webhook-local`, tunnels, and headless device login are long-running background processes (no GUI, or their early output must be relayed — see env-headless.md). **Loopback `login`/`register` are different** — they open the browser and self-complete, so run them in the **foreground with a ~5 min timeout**, NOT backgrounded.
+`--webhook-local` and tunnels are long-running background processes (no GUI). **Loopback `login`/`register` are different** — they open the browser and self-complete, so run them in the **foreground with a ~5 min timeout**, NOT backgrounded. **Headless device login is different too** — it is two quick non-blocking commands (start, then redeem; see env-headless.md), so it is never backgrounded here. (env-server.md still backgrounds its device poll — a persistent server host can keep that process alive.)
 
 > **On Windows, prefer your harness's Bash-tool background (`run_in_background: true`, or `... &`) over a PowerShell background (`Start-Process` / `Start-Job`) for any process that must survive minutes** (device-login polling, tunnels). A PowerShell-launched background process has been seen to **die before a long poll/exchange completes** (e.g. the device flow never receives its token), whereas the Bash-tool background keeps it alive. Use the PowerShell `Start-Process … -WindowStyle Hidden` form below only if no Bash-tool background is available.
 

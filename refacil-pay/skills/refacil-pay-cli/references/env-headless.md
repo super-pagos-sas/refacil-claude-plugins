@@ -18,11 +18,11 @@ refacil-pay-cli whoami --json
 
 If `authenticated: true`, skip to the task. Otherwise proceed to Step 2.
 
-### Step 2 — Register (if needed) then log in with Device Grant (run it in the background)
+### Step 2 — Register (if needed) then log in with Device Grant (two steps: start, then redeem)
 
-> **You (the agent) run this command yourself** — do **NOT** ask the user to run it in their terminal, and do **NOT** open the browser yourself. **When a session expires, re-run it yourself.**
+> **You (the agent) run these commands yourself** — do **NOT** ask the user to run them in their terminal, and do **NOT** open the browser yourself. **When a session expires, re-run them yourself.**
 >
-> ⚠️ **`login --device` is long-running and blocks.** It prints a `verification_uri` + `user_code`, then polls the server for up to ~5 minutes waiting for the user to authorize. **NEVER run `refacil-pay-cli login --device` in a blocking foreground call** — your tool's command timeout would kill it mid-poll and the login would never complete. Run it in the background and keep it alive.
+> ✅ **The device login is split into two short, non-blocking commands** so it works even in agent hosts that lose context between turns (Claude Desktop, Cowork): `login --device` requests + **persists** the code to disk and **exits immediately** (it does NOT poll, does NOT block, needs NO background process); later, after the user authorizes, `login --device --redeem` canjea the token from that saved code. The redeem step does not depend on the start process still being alive.
 
 **Ask the user: "Do you already have a Refácil Pay account?"**
 
@@ -45,39 +45,32 @@ refacil-pay-cli register --no-color
 
 > **Auth flow rule**: Use `refacil-pay-cli login --device` (device grant) **only** in this environment. Do **not** switch to plain `login` (loopback) — there is no local browser or `127.0.0.1` callback here.
 
-**1. Start the device flow in the background** — use **your harness's background / non-blocking run option** so the command's output (the `verification_uri` / `user_code`) can be captured and relayed. It must be a **real, persistent background process** that stays alive until the user authorizes: **this process is the only thing that completes the login** (it polls the backend, stores the token, then exits). bash/Linux/macOS: append `&` as shown. **On Windows: launch it with your harness's Bash-tool background option (`run_in_background: true`, or `... &`) — NOT a PowerShell background (`Start-Process`, `Start-Job`).** A PowerShell-launched background process can **die before the device polling receives the token from the server** (confirmed empirically — the Bash-tool background keeps it alive, the PowerShell one does not), so the login silently never completes even though everything looked right. Likewise **do NOT launch it inside a sub-agent / Task tool** — a sub-agent that gets cancelled kills the device process, so after the user authorizes nothing stores the token and you would poll `whoami` forever ("stuck thinking"). Use a real, surviving background process so the output is accessible (see *Running long commands in the background* in SKILL.md). Then read the codes it prints:
+**1. Start the device flow (foreground, returns instantly).** Run it normally — **no background process, no `&`, no keep-alive needed.** In a headless/agent environment the command requests a code, **saves it to disk**, prints the `verification_uri` / `user_code`, and **exits 0 right away**. Read the codes from its output:
 
 ```bash
-refacil-pay-cli login --device --env <sandbox|prod> > device-login.log 2>&1 &
-
-# wait a few seconds for the device-code response, then read it
-sleep 5 && cat device-login.log   # bash — Windows PowerShell: Start-Sleep 5; Get-Content device-login.log
+refacil-pay-cli login --device --env <sandbox|prod>
 ```
 
-> ⚠️ **Read that output file IMMEDIATELY (after ~5s) — do NOT wait for the background process to finish, and do NOT wait for a "task completed / process exited" notification before reading.** The process keeps polling until the user authorizes, so it will **not** exit until *after* they enter the code — and the `user_code` **expires in ~5 minutes**. If you wait for completion first, that notification only arrives once the code has **already expired** and the login fails ("session still not active"). The order is strict: **launch → wait ~5s → read the log → relay (step 2) → and only THEN poll/wait for completion (step 3).**
+> The saved code lives until it expires (~5 minutes). Because it is on disk, the **redeem step in Step 3 does not need this command to still be running** — that is exactly what makes this work when your context/process does not survive between turns.
 
 **2. Relay the authorization to the user** (do not open the browser yourself). **Always prefer the direct link**: the `(Or open directly: …)` line the command prints is a URL with the `user_code` already embedded, so the user just opens it and confirms — no manual code typing (easiest path). Include the manual fallback (the `Visit:` URL + `Enter code:`) only as a backup in case that direct line is absent:
 
 > *"Open this link to authorize — it already includes your code: **[verification_uri_complete]**. If it doesn't open, go to **[verification_uri]** and enter the code **[user_code]**. Tell me when you are done."*
 
-**3. Wait for the login to complete, then confirm** (allow up to ~5 minutes — the `login --device` process **exits the moment the user authorizes**, storing the token and printing "Device authorization complete"):
-
-- **Preferred — wait for the background process to finish.** If your harness notifies you when a background process exits (or you can wait on the process you started in step 1), just wait for it; the instant it finishes, run `refacil-pay-cli whoami --json` **once** to confirm `authenticated: true`. This is the cleanest path and avoids the agent looking "stuck thinking" on a busy loop.
-- **Fallback — poll `whoami` in a loop** (only if your harness gives no completion signal). Check **continuously until `authenticated: true`, not just once**, using a correct loop — do **not** hand-roll `DateTime` math (`Get-Date - $start` is a parser error in PowerShell, and the broken expression silently turns the poll into an infinite wait even after login already succeeded):
+**3. After the user says they authorized, redeem the token** (single, non-blocking command — it polls once and reports state):
 
 ```bash
-for i in $(seq 1 60); do sleep 5; refacil-pay-cli whoami --json 2>/dev/null | grep -q '"authenticated": *true' && { echo authenticated; break; }; done
-```
-```powershell
-$deadline = (Get-Date).AddMinutes(5)
-do { Start-Sleep -Seconds 5; $o = refacil-pay-cli whoami --json 2>$null | ConvertFrom-Json; if ($o.authenticated) { 'authenticated'; break } } while ((Get-Date) -lt $deadline)
+refacil-pay-cli login --device --redeem --env <sandbox|prod>
 ```
 
-> If `whoami` never turns `authenticated: true` after the user confirms they approved, the **background device process from step 1 is no longer running** (it was killed / cancelled / never truly backgrounded) — re-run step 1 as a real persistent process, relay the new code, and wait again. Polling `whoami` cannot complete the login on its own; only the live `login --device` process stores the token.
+Interpret the result by exit code / message:
+- **Success** ("Device authorization complete", exit 0) → run `refacil-pay-cli whoami --json` once to confirm `authenticated: true`, then continue with the task.
+- **Still pending** ("Authorization still pending", **exit 2**) → the user has not finished approving yet. Wait a few seconds (or ask them to confirm), then run the **same `--redeem` command again**. Repeat until success or expiry — there is no long-lived process to babysit.
+- **Expired / denied** (exit 1) → the code is dead. Go back to **Step 1**, start a fresh `login --device`, relay the new code, and redeem again.
 
-When `authenticated: true`, login is done — continue with the task.
+> Unlike a blocking poll, `--redeem` never hangs and never needs a background process: each call is a quick check. If you lose context between the start and the redeem, just run `--redeem` again — the saved code is still on disk.
 
-If it is still not authenticated after the ~5-minute polling window, ask the user to complete the authorization, then **re-run the device grant login step only** (start `refacil-pay-cli login --device` in the background again). Do **not** re-run `register` — that is a one-time precondition and does not need to be repeated. After 2 failed login attempts, tell the user what happened and stop — never loop.
+If it is still not authenticated after a few redeem attempts, ask the user to complete the authorization, then **re-run the start + redeem steps only** (`login --device`, relay, `login --device --redeem`). Do **not** re-run `register` — that is a one-time precondition and does not need to be repeated. After 2 failed login attempts, tell the user what happened and stop — never loop.
 
 > **Session inspection**: `refacil-pay-cli whoami --json` exposes `tokenSource` — where the active token came from: `"keychain"`, `"file"`, or `"flag"` — and `keychainAvailable` (`false` when the token is stored in a file instead of the OS keychain).
 
